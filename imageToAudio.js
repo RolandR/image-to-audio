@@ -14,11 +14,19 @@ context.drawImage(image, 0, 0);
 var idata = context.getImageData(0, 0, canvas.width, canvas.height);
 var imageData = idata.data;
 
+var pixels = [];
+
 for(var i = 0; i < imageData.length; i += 4){
 	if(imageData[i] < 128){
 		imageData[i] = 255;
 		imageData[i+1] = 255;
 		imageData[i+2] = 255;
+
+		pixels.push([
+			(((i/4)%canvas.width)/canvas.width)-1
+			,0-(~~((i/4)/canvas.width)/canvas.height)
+		]);
+		
 	} else {
 		imageData[i] = 0;
 		imageData[i+1] = 0;
@@ -29,37 +37,16 @@ for(var i = 0; i < imageData.length; i += 4){
 context.putImageData(idata, 0, 0);
 
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-var buffer = audioCtx.createBuffer(1, ~~(imageData.length/4)*4, audioCtx.sampleRate);
+var buffer = audioCtx.createBuffer(2, pixels.length, audioCtx.sampleRate);
 
-var nowBuffering = buffer.getChannelData(0);
-for(var i = 0; i < imageData.length; i += 4){
-	//nowBuffering[~~(i/4)] = imageData[i]/255;
+var ch0 = buffer.getChannelData(0);
+var ch1 = buffer.getChannelData(1);
 
-	if(imageData[i] > 128){
-		nowBuffering[~~(i)] = (((i/4)%canvas.width)/canvas.width)-1;
-		nowBuffering[~~(i)+1] = (((i/4)%canvas.width)/canvas.width)-1;
-		nowBuffering[~~(i)+2] = (((i/4)%canvas.width)/canvas.width)-1;
-		nowBuffering[~~(i)+3] = (((i/4)%canvas.width)/canvas.width)-1;
-	} else {
-		nowBuffering[~~(i)] = -1;
-		nowBuffering[~~(i)+1] = -1;
-		nowBuffering[~~(i)+2] = -1;
-		nowBuffering[~~(i)+3] = -1;
-	}
-}
+for(var i in pixels){
+	//ch1[~~(i/4)] = imageData[i]/255;
 
-var x = 0;
-var line = [];
-for(var a in nowBuffering){
-	if(nowBuffering[a] != -1){
-		line.push(nowBuffering[a]);
-	}
-	x++;
-	if(x == canvas.width-1){
-		x = 0;
-		console.log(line);
-		line = [];
-	}
+	ch0[i] = pixels[i][0]
+	ch1[i] = pixels[i][1]
 }
 
 var source = audioCtx.createBufferSource();
@@ -70,7 +57,10 @@ source.connect(audioCtx.destination);
 var button = document.getElementById("button");
 
 button.onclick = function(){
-	console.log(nowBuffering);
+	//console.log(ch1);
 	source.loop = true;
+	source.playbackRate.value = 0.7;
 	source.start();
+	//console.log(audioCtx.state);
+	//setTimeout(function(){console.log(audioCtx.state);}, 200);
 }
